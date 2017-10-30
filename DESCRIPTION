@@ -1,14 +1,15 @@
 Package: icpp
 Type: Package
-Title: Simulate limit of iterated cluster processes
+Title: Simulate a limiting iterated cluster point process
 Version: 0.1.0
 Authors@R: person("Andreas", "Christoffersen", email = "andreas@math.aau.dk", role = c("aut", "cre"))
-Description: Functions usefull for simulating the limiting point processes of the iterated cluster process under the same reproduction system.
+Description: Functions usefull for simulating the limiting point processes of the iterated cluster point process under the same reproduction system.
 License: GPL (>= 2)
 Encoding: UTF-8
 RoxygenNote: 6.0.1
 LazyData: TRUE
 Imports: spatstat,
          parallel,
+         stats,
          MASS,
          RandomFields

@@ -5,7 +5,6 @@
 #' @param x vector of quantiles.
 #' @param mean vector of means.
 #' @param sd vector of standard deviations.
-#' @detail See e.g. \code{\link{dnorm}} for further details
 #' @return A vector of density values.
 #' @importFrom stats dnorm
 my2ddnorm <- function(x, mean = 0, sd = 1) {
