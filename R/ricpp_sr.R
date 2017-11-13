@@ -14,10 +14,12 @@
 #' @param n Positive integer. The number of iterations.
 #' @param tol Positive real number.
 #' @param ncores Positive integer specifying the number of cores to be used.
+#' @param track logical indicating wheter to print the iterationnumber for each completed iteration.
+#' Is not necessarily in chronological orden when \code{ncores > 1}.
 #' See the argument \code{mc.cores} in \code{\link{mclapply}}.
 #' @import spatstat parallel
 #' @export
-ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, clsiz_var = NULL, n = NULL, tol = .Machine$double.eps, ncores = 1){
+ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, clsiz_var = NULL, n = NULL, tol = .Machine$double.eps, ncores = 1, track = FALSE){
   if (intens < 0) stop("The constant intensity must be a non-negative number.")
   if (sd < 0) stop("The standard deviation for the offspring density must be non-negative.")
   if (clsiz < 0 || clsiz > 1) stop("The expected cluster size (clsiz) must be between 0 and 1.")
@@ -34,7 +36,8 @@ ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, c
       exp_int <- noise_int * sum(rep(clsiz, n + 1) ^ (0:n))
     }
   }
-  cat(n, "\n")
+  cat("Number of iterations:", n, "\n")
+  if(track) cat("Tracking:", " ")
 
   # Do the simulations
   noise_pp <- mclapply(0:n, function(i) {
@@ -42,7 +45,6 @@ ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, c
     switch(noise,
            pois = {
              out <- rpoispp(noise_int, win = win_expanded)
-             cat(i)
              out
            },
            det = {
@@ -51,14 +53,13 @@ ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, c
                out <- simulate.dppm(dppGauss(lambda = noise_int, alpha = kernel_sd, d = 2), W = win_expanded)
                catch <- class(out)
              }
-             cat(i)
              out
            },
            per = {
              out <- rPPP(noise_int, kernel_sd, alpha = 0.5, win = win_expanded)
-             cat(i)
              out
            })
+    if(track) cat(i, " ")
   }, mc.cores = ncores)
   current <- noise_pp[[n + 1]]
   for (i in 0:(n - 1)) {
