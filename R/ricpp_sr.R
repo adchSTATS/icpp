@@ -45,7 +45,6 @@ ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, c
     switch(noise,
            pois = {
              out <- rpoispp(noise_int, win = win_expanded)
-             out
            },
            det = {
              catch <- "no"
@@ -53,13 +52,12 @@ ricpp_sr <- function(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL, c
                out <- simulate.dppm(dppGauss(lambda = noise_int, alpha = kernel_sd, d = 2), W = win_expanded)
                catch <- class(out)
              }
-             out
            },
            per = {
              out <- rPPP(noise_int, kernel_sd, alpha = 0.5, win = win_expanded)
-             out
            })
     if(track) cat(i, " ")
+    out
   }, mc.cores = ncores)
   current <- noise_pp[[n + 1]]
   for (i in 0:(n - 1)) {
