@@ -4,6 +4,7 @@
 #' Calculats the pcf for the n'th generation iterated Neyman-Scott type process with or without noise.
 #' It is asusmed that nothing except for the intensity depends on the generation number.
 #' The offspring density is assumed to be Gaussian.
+#' The retention probability in 0, meaning that points do not survive to the next generation.
 #'
 #' @param n Positive integer. The number of iterations.
 #' @param init_int Non-negative numeric. Intensity of the initial generation.
@@ -132,6 +133,9 @@ pcf_icpp <- function(n,
     if (weight_per_noise < 0) stop("weight_per_noise should be a non-negative numeric")
   }
 
+  if (noise == "non") noise_int <- 0
+  if(noise_int == 0) noise <- "non"
+
   # Determine the combinations to return
   combs_tmp <- expand.grid(initial, noise)
   combs <- paste(combs_tmp[, 1], combs_tmp[, 2], sep = "_")
@@ -140,97 +144,52 @@ pcf_icpp <- function(n,
   out <- numeric(length(combs))
   names(out) <- combs
   index <- 0:(n - 1)
-  clsiz_power <- clsiz ^ index
-  sd_pois <- sqrt(2 * (n - index) * sd ^ 2)
+  clsiz_power <- clsiz ^ (0:n)
+  sd_pois <- sqrt(2 * (index + 1) * sd ^ 2)
+  int_gen_i <- init_int * clsiz_power + noise_int * cumsum(c(0, clsiz^index))
 
   # Initial specific calculations
-  a_det <- -pi * kernel_sd_det_init ^ 2 / weight_det_init
-  a_per <- pi * kernel_sd_per_init ^ 2 / weight_per_init
-  sd_det_per_init <- sqrt(c(kernel_sd_det_init, kernel_sd_per_init) ^ 2 / 4 + 2 * n * sd ^ 2)
-  sd_det_init <- sd_det_per_init[1]
-  sd_per_init <- sd_det_per_init[2]
+  switch(initial,
+         "det" = {
+           a <- -pi * kernel_sd_det_init ^ 2 / weight_det_init
+           sd_init <- sqrt(kernel_sd_det_init^2 / 4 + 2 * n * sd^2)
+         }, "per" = {
+           a <- pi * kernel_sd_per_init ^ 2 / weight_per_init
+           sd_init <- sqrt(kernel_sd_per_init^2 / 4 + 2 * n * sd^2)
+         }, {
+           a <- 0
+           sd_init <- 1
+         })
 
   # Noise specific calculations
-  no_noise <- "non" %in% noise || noise_int == 0
-  with_noise <- any(noise %in% c("det", "Pois", "per")) && noise_int != 0
-  if (with_noise) {
-    b_det <- -pi * kernel_sd_det_noise ^ 2 / weight_det_noise
-    b_per <- pi * kernel_sd_per_noise ^ 2 / weight_per_noise
-    sd_det_noise <- sqrt(kernel_sd_det_noise ^ 2 / 4 + 2 * (n - index[-n]) * sd ^ 2)
-    sd_per_noise <- sqrt(kernel_sd_per_noise ^ 2 / 4 + 2 * (n - index[-n]) * sd ^ 2)
-    int_gen_i <- c(init_int, sapply(index, function(n) {
-      if (n == 0) {
-        sum_term <- 0
-      } else {
-        i <- 1:n
-        sum_term <- sum(clsiz ^ (n + 1 - i))
-      }
-      noise_int * (1 + sum_term) + init_int * clsiz ^ (n + 1)
-    }))
-    clsiz_squared <- clsiz ^ 2
-  }
+  switch (noise,
+          "det" = {
+            b <- -pi * kernel_sd_det_noise ^ 2 / weight_det_noise
+            sd_noise <- sqrt(kernel_sd_det_noise ^ 2 / 4 + 2 * index * sd ^ 2)
+          }, "per" = {
+            b <- pi * kernel_sd_per_noise ^ 2 / weight_per_noise
+            sd_noise <- sqrt(kernel_sd_per_noise ^ 2 / 4 + 2 * index * sd ^ 2)
+          }, {
+            b <- 0
+            sd_noise <- 1
+          })
+
 
   function(r) {
-    # Define constants that are common for the case with and without noise
-    common_conv <- my2ddnorm(r, sd = sd_pois)
-    if ("det" %in% initial) {
-      init_det_conv <- a_det * my2ddnorm(r, sd = sd_det_init)
-    }
-    if ("per" %in% initial) {
-      init_per_conv <- a_per * my2ddnorm(r, sd = sd_per_init)
-    }
+    # Common term
+    density_convolution_mat <- sapply(sd_pois, FUN = function(sd) my2ddnorm(r, sd = sd))
+    Pois_Pois <- as.vector(1 + (density_convolution_mat %*% (rev(int_gen_i[-(n+1)]) * clsiz_power[-1]^2)) / int_gen_i[n+1]^2)
 
-    # Calculations when there is no noise
-    if (no_noise) {
-      Pois_non = 1 + c / init_int * sum(common_conv / clsiz_power)
-    }
+    # Term for initial generation Initial
+    density_convolution <- my2ddnorm(r, sd = sd_init)
+    init_term <- (int_gen_i[1] / int_gen_i[n+1])^2 * a * density_convolution * clsiz_power[n+1]^2
 
-    # Calculations when there is noise
-    if (with_noise) {
-      Pois_Pois <- 1 + c / int_gen_i[n + 1] ^ 2 * sum(int_gen_i[-(n + 1)] * clsiz_squared ^ (n - index) * common_conv)
+    # Terms for noise
+    density_convolution_mat <- sapply(sd_noise, FUN = function(sd) my2ddnorm(r, sd = sd))
+    noise_term <- (noise_int / int_gen_i[n+1])^2 * b * as.vector(density_convolution_mat %*% clsiz_power[-(n+1)]^2)
 
-      # Calculations specific for choice of initial process
-      if (any(c("det", "per") %in% initial)) {
-        init_const <- init_int ^ 2 / int_gen_i[n + 1] ^ 2 *clsiz_squared ^ n
-        if ("det" %in% initial) {
-          det_init <- init_const * init_det_conv
-        }
-        if ("per" %in% initial) {
-          per_init <- init_const * init_per_conv
-        }
-      }
-
-      # Calculations specific for choice of noise process
-      if (any(c("det", "per") %in% noise)) {
-        noise_const <- (noise_int / int_gen_i[n + 1]) ^ 2
-        if("det" %in% noise) {
-          det_noise <- sum(clsiz_squared ^ (n - index[-n]) * b_det * my2ddnorm(r, sd = sd_det_noise))
-          det_noise <- det_noise + b_det * my2ddnorm(r, sd = kernel_sd_det_noise ^ 2 / 4)
-          det_noise <- noise_const * det_noise
-        }
-        if("per" %in% noise) {
-          per_noise <- sum(clsiz_squared ^ (n - index[-n]) * b_per * my2ddnorm(r, sd = sd_per_noise))
-          per_noise <- per_noise + b_per * my2ddnorm(r, sd = kernel_sd_per_noise ^ 2 / 4)
-          per_noise <- noise_const * per_noise
-        }
-      }
-    }
 
     # Final output calculations
-    sapply(combs, function(x) {
-      switch(x,
-             Pois_non = Pois_non,
-             det_non = Pois_non + init_det_conv,
-             per_non = Pois_non + init_per_conv,
-             Pois_Pois = Pois_Pois,
-             det_Pois = Pois_Pois + det_init,
-             per_Pois = Pois_Pois + per_init,
-             Pois_det = Pois_Pois + det_noise,
-             det_det = Pois_Pois + det_init + det_noise,
-             per_det = Pois_Pois + per_init + det_noise,
-             Pois_per = Pois_Pois + per_noise,
-             det_per = Pois_Pois + det_init + per_noise,
-             per_per = Pois_Pois + per_init + per_noise)
-    })
+    Pois_Pois + init_term + noise_term
   }
 }

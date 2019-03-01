@@ -5,7 +5,8 @@
 \title{Simulate iterated cluster point prcocesses with independent imigration}
 \usage{
 ricpp_sr(intens, clsiz, sd, noise, win = owin(), kernel_sd = NULL,
-  clsiz_var = NULL, n = NULL, tol = .Machine$double.eps, ncores = 1)
+  clsiz_var = NULL, n = NULL, tol = .Machine$double.eps,
+  ncores = 1, track = FALSE)
 }
 \arguments{
 \item{intens}{Non-negative numeric. The desired intensity for each generation.}
@@ -28,7 +29,10 @@ Default is \code{NULL} in which case \code{noise} must be \code{"Pois"}.}
 
 \item{tol}{Positive real number.}
 
-\item{ncores}{Positive integer specifying the number of cores to be used.
+\item{ncores}{Positive integer specifying the number of cores to be used.}
+
+\item{track}{logical indicating wheter to print the iterationnumber for each completed iteration.
+Is not necessarily in chronological orden when \code{ncores > 1}.
 See the argument \code{mc.cores} in \code{\link{mclapply}}.}
 }
 \description{

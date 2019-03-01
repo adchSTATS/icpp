@@ -7,8 +7,9 @@
 pcf_icpp(n, init_int, clsiz, c = 1, sd, initial = "Pois",
   kernel_sd_det_init = NULL, kernel_sd_per_init = NULL,
   weight_det_init = 1, weight_per_init = 1/2, noise = "non",
-  noise_int = 0, kernel_sd_det_noise = NULL, kernel_sd_per_noise = NULL,
-  weight_det_noise = 1, weight_per_noise = 1/2)
+  noise_int = 0, kernel_sd_det_noise = NULL,
+  kernel_sd_per_noise = NULL, weight_det_noise = 1,
+  weight_per_noise = 1/2)
 }
 \arguments{
 \item{n}{Positive integer. The number of iterations.}
@@ -69,6 +70,7 @@ Closure function (ie. returns a function) that:
 Calculats the pcf for the n'th generation iterated Neyman-Scott type process with or without noise.
 It is asusmed that nothing except for the intensity depends on the generation number.
 The offspring density is assumed to be Gaussian.
+The retention probability in 0, meaning that points do not survive to the next generation.
 }
 \details{
 The function is a closure function.
