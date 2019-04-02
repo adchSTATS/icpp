@@ -151,10 +151,10 @@ pcf_icpp <- function(n,
   # Initial specific calculations
   switch(initial,
          "det" = {
-           a <- -pi * kernel_sd_det_init ^ 2 / weight_det_init
+           a <- -pi * kernel_sd_det_init ^ 2 / (2 * weight_det_init)
            sd_init <- sqrt(kernel_sd_det_init^2 / 4 + 2 * n * sd^2)
          }, "per" = {
-           a <- pi * kernel_sd_per_init ^ 2 / weight_per_init
+           a <- pi * kernel_sd_per_init ^ 2 / (2 * weight_per_init)
            sd_init <- sqrt(kernel_sd_per_init^2 / 4 + 2 * n * sd^2)
          }, {
            a <- 0
@@ -164,10 +164,10 @@ pcf_icpp <- function(n,
   # Noise specific calculations
   switch (noise,
           "det" = {
-            b <- -pi * kernel_sd_det_noise ^ 2 / weight_det_noise
+            b <- -pi * kernel_sd_det_noise ^ 2 / (2 * weight_det_noise)
             sd_noise <- sqrt(kernel_sd_det_noise ^ 2 / 4 + 2 * index * sd ^ 2)
           }, "per" = {
-            b <- pi * kernel_sd_per_noise ^ 2 / weight_per_noise
+            b <- pi * kernel_sd_per_noise ^ 2 / (2 * weight_per_noise)
             sd_noise <- sqrt(kernel_sd_per_noise ^ 2 / 4 + 2 * index * sd ^ 2)
           }, {
             b <- 0
