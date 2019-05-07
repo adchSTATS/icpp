@@ -186,7 +186,12 @@ pcf_icpp <- function(n,
 
     # Terms for noise
     density_convolution_mat <- sapply(sd_noise, FUN = function(sd) my2ddnorm(r, sd = sd))
-    noise_term <- (noise_int / int_gen_i[n+1])^2 * b * as.vector(density_convolution_mat %*% clsiz_power[-(n+1)]^2)
+    ttmp <- if(n == 1) {
+      as.vector(density_convolution_mat %*% clsiz_power[-(n+1)]^2)
+    } else {
+      as.vector(rowSums(density_convolution_mat %*% clsiz_power[-(n+1)]^2))
+    }
+    noise_term <- (noise_int / int_gen_i[n+1])^2 * b * ttmp
 
 
     # Final output calculations
